@@ -23,7 +23,7 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
-networkx = "^2.8"
+networkx = "^3.1"
 numpy = "^1.23"
 pandas = "^1.5"
 pydot = "^1.4"

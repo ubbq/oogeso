@@ -41,16 +41,20 @@ def compute_power_flow_matrices(nodes, branches, base_Z=1):
     G = nx.MultiDiGraph()
     G.add_nodes_from(nodes)
     G.add_edges_from(edges)
-    A_incidence_matrix = -nx.incidence_matrix(G, oriented=True, nodelist=nodes, edgelist=edges).T
-    
+    A_incidence_matrix = -nx.incidence_matrix(
+        G,
+        oriented=True,
+        nodelist=nodes,
+        edgelist=edges,
+    ).T
     # NOTE:
     # networkx returns ndarray instead of matrix (after recent change)
-    # this affectts the * operator, which meanselement-wise multiplication, 
+    # this affectts the * operator, which meanselement-wise multiplication,
     # for numpy.matrix but not for numpy.ndarray
     # To get elementwise multiplication below, we therefore convert to matrix.
     # Example
     # This gives correct result:
-    #     (scipy.sparse.csc_matrix(A_incidence_matrix).T*scipy.sparse.csc_matrix(Bf)).todense() 
+    #     (scipy.sparse.csc_matrix(A_incidence_matrix).T*scipy.sparse.csc_matrix(Bf)).todense()
     # This fails (when the matrices are (sparse) ndarrays):
     #     (A_incidence_matrix.T*Bf)
     A_incidence_matrix = scipy.sparse.csc_matrix(A_incidence_matrix)

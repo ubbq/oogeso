@@ -6,7 +6,7 @@ parameters:
   co2_tax: 0.8 # NOK/kgCO2
   emission_intensity_max: -1 # kgCO2/Sm3oe, -1=no limit
   emission_rate_max: -1 # kgCO2/hour, -1=no limit
-  objective: exportRevenue # select objective function to use
+  objective: co2intensity # select objective function to use
 
 carriers:
   - id: el

@@ -2,6 +2,7 @@ from typing import Callable
 
 from oogeso import dto
 from oogeso.core import devices, networks
+from oogeso.core.networks import edge
 
 
 def get_network_from_carrier_name(carrier_name: str) -> Callable:
@@ -52,6 +53,22 @@ def get_device_from_model_name(model_name: str) -> Callable:
         return map_device_name_to_class[model_name]
     else:
         raise NotImplementedError(f"Device {model_name} has not been implemented.")
+
+
+def get_edge_type_from_carrier(edge_data: str) -> Callable:
+    map_edge_to_class = {
+        "gas": edge.GasEdge,
+        "oil": edge.OilEdge,
+        "water": edge.WaterEdge,
+        "el": edge.ElEdge,
+        "heat": edge.HeatEdge,
+        "hydrogen": edge.HydrogenEdge,
+        "wellstream": edge.WellstreamEdge,
+    }
+    if edge_data not in map_edge_to_class:
+        raise NotImplementedError(f"Edge {edge_data} has not been implemented.")
+
+    return map_edge_to_class[edge_data]
 
 
 def get_device_data_class_from_str(model_name: str) -> Callable:

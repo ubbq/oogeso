@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from typing import Dict, List, Optional, Union
 
 import pandas as pd
@@ -12,7 +13,7 @@ from oogeso.core.devices.storage import StorageDevice
 from oogeso.core.networks import ElNetwork, Network
 from oogeso.core.networks.edge import Edge
 from oogeso.core.networks.network_node import NetworkNode
-from oogeso.dto.mapper import get_device_from_model_name, get_network_from_carrier_name
+from oogeso.dto.mapper import get_device_from_model_name, get_edge_type_from_carrier, get_network_from_carrier_name
 
 logger = logging.getLogger(__name__)
 
@@ -84,32 +85,7 @@ class OptimisationModel(pyo.ConcreteModel):
     def _set_node_pressure_from_edge_data(self):
         # Set node terminal nominal pressure based on edge from/to pressure values
         for edge in self.all_edges.values():
-            edg = edge.edge_data
-            carrier = edg.carrier
-            # Setting nominal pressure levels at node terminals. Raise exception
-            # if inconsistencies are found
-            if hasattr(edg, "pressure_from"):
-                if edg.pressure_from is not None:
-                    n_from: NetworkNode = self.all_nodes[edg.node_from]
-                    p_from = edg.pressure_from
-                    n_from.set_pressure_nominal(carrier, "out", p_from)
-            if hasattr(edg, "pressure_to"):
-                if edg.pressure_to is not None:
-                    n_to: NetworkNode = self.all_nodes[edg.node_to]
-                    p_to = edg.pressure_to
-                    n_to.set_pressure_nominal(carrier, "in", p_to)
-            # Setting max pressure deviation values at node terminals. Raise exception
-            # if inconsistencies are found
-            if hasattr(edg, "pressure_from_maxdeviation"):
-                if edg.pressure_from_maxdeviation is not None:
-                    n_from: NetworkNode = self.all_nodes[edg.node_from]
-                    p_maxdev_from = edg.pressure_from_maxdeviation
-                    n_from.set_pressure_maxdeviation(carrier, "out", p_maxdev_from)
-            if hasattr(edg, "pressure_to_maxdeviation"):
-                if edg.pressure_to_maxdeviation is not None:
-                    n_to: NetworkNode = self.all_nodes[edg.node_to]
-                    p_maxdev_to = edg.pressure_to_maxdeviation
-                    n_to.set_pressure_maxdeviation(carrier, "in", p_maxdev_to)
+            edge.set_node_pressure_from_edge_data()
 
     def _create_network_objects_from_data(self, data: dto.EnergySystemData):
         """Create energy system objects, and populate local dictionaries
@@ -130,8 +106,10 @@ class OptimisationModel(pyo.ConcreteModel):
             # name identical to the type (but capitalized):
             logger.debug("Device model={}".format(device_model))
             device = get_device_from_model_name(model_name=device_model)
+
             carrier_data_dict = {carr_obj.id: carr_obj for carr_obj in data.carriers}
             new_device = device(dev_data_obj, carrier_data_dict)
+
             if isinstance(new_device, StorageDevice):
                 # Add this device to global list of storage devices:
                 self.devices_with_storage.append(new_device)
@@ -144,16 +122,18 @@ class OptimisationModel(pyo.ConcreteModel):
             node_id = new_node.id
             self.all_nodes[node_id] = new_node
 
-        edges_per_type = {}
+        edges_per_type = defaultdict(dict)
         for edge_data_obj in data.edges:
             if edge_data_obj.include is False:
                 # skip this edge and move to next
                 continue
             edge_id = edge_data_obj.id
             carrier = edge_data_obj.carrier
-            new_edge = networks.Edge(edge_data_obj)
-            if carrier not in edges_per_type:
-                edges_per_type[carrier] = {}
+            edge = get_edge_type_from_carrier(carrier)
+            new_edge = edge(edge_data_obj)
+
+            # if carrier not in edges_per_type:
+            #   edges_per_type[carrier] = {}
             edges_per_type[carrier][edge_id] = new_edge
             self.all_edges[edge_id] = new_edge
 
@@ -162,8 +142,8 @@ class OptimisationModel(pyo.ConcreteModel):
             # The network class corresponding to the carrier should always have a
             # name identical to the id (but capitalized):
             network_class = get_network_from_carrier_name(carrier_model)
-            if carrier_model not in edges_per_type:
-                edges_per_type[carrier_model] = {}
+            # if carrier_model not in edges_per_type:
+            #   edges_per_type[carrier_model] = {}
             new_network = network_class(
                 carrier_data=carrier_data_obj,
                 edges=edges_per_type[carrier_model],
@@ -177,6 +157,7 @@ class OptimisationModel(pyo.ConcreteModel):
             node = self.all_nodes[node_id_where_connected]
             node.add_device(dev_id, dev)
             dev.add_node(node)
+
         for edge_id, edge in self.all_edges.items():
             node_from = self.all_nodes[edge.edge_data.node_from]
             node_from.add_edge(edge, "from")
@@ -317,7 +298,6 @@ class OptimisationModel(pyo.ConcreteModel):
         self.objObjective = pyo.Objective(rule=rule, sense=pyo.minimize)
 
     def _specify_constraints(self):
-
         # 1. Constraints associated with each device:
         for dev in self.all_devices.values():
             list_to_reconstruct = dev.define_constraints(self)
@@ -463,7 +443,7 @@ class OptimisationModel(pyo.ConcreteModel):
         """CO2 emissions per sec"""
         return self.compute_CO2(model)
 
-    def _rule_objective_co2intensity(self, model: pyo.Model) -> Optional[float]:
+    def _rule_objective_co2intensity(self, model: pyo.Model) -> float:
         """CO2 emission intensity (CO2 per exported oil/gas)
         DOES NOT WORK - NONLINEAR (ratio)"""
         return self.compute_CO2_intensity(model)
@@ -571,12 +551,7 @@ class OptimisationModel(pyo.ConcreteModel):
 
         co2_kg_per_time = self.compute_CO2(model, devices=None, timesteps=timesteps)
         flow_oil_equivalents_m3_per_time = self.compute_oilgas_export(model, timesteps)
-        if pyo.value(flow_oil_equivalents_m3_per_time) != 0:
-            return co2_kg_per_time / flow_oil_equivalents_m3_per_time
-        elif pyo.value(flow_oil_equivalents_m3_per_time) == 0:
-            return None
-        else:
-            return co2_kg_per_time
+        return co2_kg_per_time**2 / flow_oil_equivalents_m3_per_time
 
     def compute_startup_penalty(self, model: pyo.Model, devices=None, timesteps=None):
         """startup costs (average per sec)"""

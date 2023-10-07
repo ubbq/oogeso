@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 import pandas as pd
-from pydantic import BaseModel, Field, Extra
+from pydantic import BaseModel, Extra, Field
 
 from oogeso.dto.types import CarrierType, ModelType
 
@@ -52,7 +52,7 @@ class DeviceData(BaseModel, extra=Extra.forbid):  # Parent class - use subclasse
     id: str  # unique identifier
     node_id: str  # reference to node identifier
     name: str = ""
-    include: Optional[bool] = True
+    include: bool = True
     profile: Optional[str] = None  # reference to time-series
     flow_min: Optional[float] = None  # Energy or fluid flow limit
     flow_max: Optional[float] = None
@@ -73,7 +73,7 @@ class EdgeData(BaseModel, extra=Extra.forbid):  # Base model, use implementation
     node_to: str
     length_km: Optional[float] = None
     flow_max: float = None  # Maximum flow (MW or Sm3/s)
-    bidirectional: Optional[bool] = True
+    bidirectional: bool = True
     include: bool = True  # whether to include object in problem formulation
     carrier: CarrierType
 

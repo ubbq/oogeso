@@ -8,7 +8,7 @@ class EdgeElData(EdgeData):
     resistance: float = 0  # ohm per km
     reactance: float = 0  # ohm per km
     # Voltage for line (single value) or transformer (tuple)
-    voltage: Union[float, Tuple[float, float]] = None  # kV.
+    voltage: Optional[Union[float, Tuple[float, float]]] = None  # kV.
     # Power loss in MW as function of power transfer in MW:
     power_loss_function: Optional[Tuple[List[float], List[float]]] = None
     carrier: CarrierType = CarrierType.EL
@@ -20,17 +20,12 @@ class EdgeHeatData(EdgeData):
     carrier: CarrierType = CarrierType.HEAT
 
 
-class EdgeHydrogenData(EdgeData):
-    bidirectional: bool = False
-    carrier: CarrierType = CarrierType.HYDROGEN
-
-
 class EdgeFluidData(EdgeData):
-    # wellstream, oil, water, gas
-    pressure_from: float = None
-    pressure_to: float = None
-    diameter_mm: float = None
-    temperature_K: float = None
+    # wellstream, oil, water, gas, hydrogen
+    pressure_from: Optional[float] = None
+    pressure_to: Optional[float] = None
+    diameter_mm: Optional[float] = None
+    temperature_K: Optional[float] = None
     height_m: float = 0
     num_pipes: Optional[int] = None
     bidirectional: bool = False
@@ -38,6 +33,11 @@ class EdgeFluidData(EdgeData):
     pressure_from_maxdeviation: Optional[float] = None
     pressure_to_maxdeviation: Optional[float] = None
     carrier: CarrierType = CarrierType.FLUID
+
+
+class EdgeHydrogenData(EdgeFluidData):
+    bidirectional: bool = False
+    carrier: CarrierType = CarrierType.HYDROGEN
 
 
 class EdgeGasData(EdgeFluidData):

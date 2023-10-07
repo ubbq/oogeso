@@ -32,7 +32,6 @@ class Edge:
 
         # Losses (flow out of edge less than into edge)
         if self.has_loss():
-
             # First, connecting variables (flow in different directions and loss variables)
             constr_loss = pyo.Constraint(
                 pyomo_model.setHorizon,
@@ -95,7 +94,6 @@ class Edge:
         return expr  # noqa
 
     def _loss_function_constraint(self, i: int, pyomo_model: pyo.Model, piecewise_repn: str):
-
         # Piecewise constraints require independent variable to be bounded:
         pyomo_model.varEdgeFlow12[self.id, :].setub(self.edge_data.flow_max)
         pyomo_model.varEdgeFlow21[self.id, :].setub(self.edge_data.flow_max)
@@ -127,10 +125,62 @@ class Edge:
         )
         return constr_penalty
 
+    def set_node_pressure_from_edge_data(self):
+        pass
+
 
 class FluidEdge(Edge):
     edge_data: dto.EdgeFluidData
 
+    # This is for a fluid edge
+    def set_node_pressure_from_edge_data(self):
+        edg = self.edge_data
+        carrier = edg.carrier
+        # Setting nominal pressure levels at node terminals. Raise exception
+        # if inconsistencies are found
+        if edg.pressure_from is not None:
+            n_from: NetworkNode = self.node_from
+            p_from = edg.pressure_from
+            n_from.set_pressure_nominal(carrier, "out", p_from)
+        if edg.pressure_to is not None:
+            n_to: NetworkNode = self.node_to
+            p_to = edg.pressure_to
+            n_to.set_pressure_nominal(carrier, "in", p_to)
+        # Setting max pressure deviation values at node terminals. Raise exception
+        # if inconsistencies are found
+        if edg.pressure_from_maxdeviation is not None:
+            n_from: NetworkNode = self.node_from
+            p_maxdev_from = edg.pressure_from_maxdeviation
+            n_from.set_pressure_maxdeviation(carrier, "out", p_maxdev_from)
+        if edg.pressure_to_maxdeviation is not None:
+            n_to: NetworkNode = self.node_to
+            p_maxdev_to = edg.pressure_to_maxdeviation
+            n_to.set_pressure_maxdeviation(carrier, "in", p_maxdev_to)
+
+
+class HydrogenEdge(FluidEdge):
+    edge_data: dto.EdgeHydrogenData
+
+
+class OilEdge(FluidEdge):
+    edge_data: dto.EdgeOilData
+
+
+class WaterEdge(FluidEdge):
+    edge_data: dto.EdgeWaterData
+
+
+class GasEdge(FluidEdge):
+    edge_data: dto.EdgeGasData
+
+
+class WellstreamEdge(FluidEdge):
+    edge_data: dto.EdgeWellstreamData
+
 
 class ElEdge(Edge):
     edge_data: dto.EdgeElData
+
+
+class HeatEdge(Edge):
+    edge_data: dto.EdgeHeatData
