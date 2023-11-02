@@ -366,3 +366,27 @@ class Simulator:
             profiles_nowcast=None,
         )
         return result_object
+
+    def _inspect_device_constraints(self, gt):
+        optimiser = self.optimiser
+        print("{} on/off initial status = {}".format(gt, pyo.value(optimiser.paramDeviceIsOnInitially[gt])))
+        print(
+            "{} timesteps in startup preparation = {}".format(
+                gt, pyo.value(optimiser.paramDevicePrepTimestepsInitially[gt])
+            )
+        )
+        print("start-stop constraint:")
+        for t in range(4):
+            cstr = getattr(optimiser, "constr_{}_startstop".format(gt))[t]
+            # cstr=optimiser.constrDevice_startup_shutdown[gt,t]
+            print("  t={}: {} = {}".format(t, cstr.body, cstr.upper))
+        print("start delay constraint:")
+        for t in range(4):
+            cstr = getattr(optimiser, "constr_{}_startdelay".format(gt))[t]
+            # cstr=optimiser.constrDevice_startup_delay[gt,t]
+            print("  t={}: {} = {}".format(t, cstr.body, cstr.upper))
+        print("max flow constraint:")
+        for t in range(4):
+            cstr = getattr(optimiser, "constr_{}_flowMax".format(gt))[t]
+            # cstr=optimiser.constrDevicePmax[gt,t]
+            print("  t={}: {} = {}".format(t, cstr.body, cstr.upper))

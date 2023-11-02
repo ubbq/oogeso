@@ -551,6 +551,8 @@ class OptimisationModel(pyo.ConcreteModel):
 
         co2_kg_per_time = self.compute_CO2(model, devices=None, timesteps=timesteps)
         flow_oil_equivalents_m3_per_time = self.compute_oilgas_export(model, timesteps)
+        if flow_oil_equivalents_m3_per_time == 0:
+            return 0
         return co2_kg_per_time**2 / flow_oil_equivalents_m3_per_time
 
     def compute_startup_penalty(self, model: pyo.Model, devices=None, timesteps=None):
