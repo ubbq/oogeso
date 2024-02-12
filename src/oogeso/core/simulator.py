@@ -144,7 +144,16 @@ class Simulator:
             self.optimiser.update_optimisation_model(step, first=first, profiles=self.profiles)
             # 2. Solve for planning horizon
 
+            if results.solver.termination_condition == TerminationCondition.optimal:
+                opt.load_vars()
+                # This works, but only if the previous solution is feasible somehow, resets prev model
             opt.set_instance(self.optimiser)
+
+            """
+                Define how to set variables that need updating
+                Define if same procedure for parameters
+                opt.load_vars(), how does this work
+            """
 
             """
             self.optimiser.solve(
@@ -155,7 +164,8 @@ class Simulator:
                 time_limit=time_limit,
             )
             """
-            res = opt.solve(tee=True, warmstart=True, load_solutions=True)
+            res = opt.solve(tee=False, warmstart=True, load_solutions=True)
+
             # 3. Save results (for later analysis)
             new_results = self._save_optimisation_result(step, return_variables, None)
             result_object.append_results(new_results)
