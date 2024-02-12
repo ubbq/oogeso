@@ -134,6 +134,7 @@ class Simulator:
         opt = pyo.SolverFactory(solver)
         opt.options["TimeLimit"] = 10
 
+
         first = True
         for step in trange(time_start, time_end, steps):
             if not HAS_TQDM:
@@ -142,6 +143,7 @@ class Simulator:
             # 1. Update problem formulation
             self.optimiser.update_optimisation_model(step, first=first, profiles=self.profiles)
             # 2. Solve for planning horizon
+
             opt.set_instance(self.optimiser)
 
             """
@@ -153,10 +155,9 @@ class Simulator:
                 time_limit=time_limit,
             )
             """
-            res = opt.solve(tee=False)
-            print(res)
+            res = opt.solve(tee=True, warmstart=True, load_solutions=True)
             # 3. Save results (for later analysis)
-            new_results = self._save_optimisation_result(step, return_variables, store_duals)
+            new_results = self._save_optimisation_result(step, return_variables, None)
             result_object.append_results(new_results)
             first = False
 
