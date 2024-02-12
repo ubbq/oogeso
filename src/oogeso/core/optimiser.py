@@ -65,6 +65,7 @@ class OptimisationModel(pyo.ConcreteModel):
             elif solver == "glpk":
                 opt.options["tmlim"] = time_limit
         logger.debug("Solving...")
+
         sol = opt.solve(self)
 
         if write_yaml:
